@@ -173,13 +173,13 @@ def stdstreams(stdout, stderr):
 
 
 def do_gain_async(queue, job_key, files, ref_level, force, dry_run, album,
-                  mp3_format):
+                  mp3_format, preserve):
     output = io.StringIO()
     try:
         with stdstreams(output, output):
             if album:
                 print("%s:" % job_key[1], end='')
-            do_gain(files, ref_level, force, dry_run, album, mp3_format)
+            do_gain(files, ref_level, force, dry_run, album, mp3_format, preserve)
             print("")
     except BaseException as exc:
         # We can't reliably serialise and pass the exception information to the
@@ -192,7 +192,7 @@ def do_gain_async(queue, job_key, files, ref_level, force, dry_run, album,
 
 def do_gain_all(music_dir, albums, single_tracks, files, ref_level=89,
                 force=False, dry_run=False, mp3_format=None, jobs=0,
-                stop_on_error=False):
+                stop_on_error=False, preserve=False):
     pool = multiprocessing.Pool(None if jobs == 0 else jobs)
     manager = multiprocessing.Manager()
     queue = manager.Queue()
@@ -204,7 +204,7 @@ def do_gain_all(music_dir, albums, single_tracks, files, ref_level=89,
             do_gain_async, [
                 queue, (single_tracks, None),
                 [os.path.join(music_dir, path) for path in single_tracks],
-                ref_level, force, dry_run, False, mp3_format])
+                ref_level, force, dry_run, False, mp3_format, preserve])
         num_jobs += 1
 
     for album_id, album_files in albums.items():
@@ -212,7 +212,7 @@ def do_gain_all(music_dir, albums, single_tracks, files, ref_level=89,
             do_gain_async, [
                 queue, (album_files, album_id),
                 [os.path.join(music_dir, path) for path in album_files],
-                ref_level, force, dry_run, True, mp3_format])
+                ref_level, force, dry_run, True, mp3_format, preserve])
         num_jobs += 1
     pool.close()
 
@@ -252,7 +252,7 @@ def do_gain_all(music_dir, albums, single_tracks, files, ref_level=89,
 
 
 def do_collectiongain(music_dir, ref_level=89, force=False, dry_run=False,
-                      mp3_format=None, ignore_cache=False, jobs=0):
+                      mp3_format=None, ignore_cache=False, jobs=0, preserve=False):
     music_abspath = os.path.abspath(music_dir)
     musicpath_hash = md5(music_abspath.encode("utf-8")).hexdigest()
     cache_file = os.path.join(os.path.expanduser("~"), ".cache",
@@ -288,7 +288,7 @@ def do_collectiongain(music_dir, ref_level=89, force=False, dry_run=False,
         # gain everything that has survived the cleansing
         do_gain_all(
             music_dir, albums, single_tracks, files, ref_level, force, dry_run,
-            mp3_format, jobs)
+            mp3_format, jobs, preserve)
     finally:
         write_cache(cache_file, files)
 
@@ -372,6 +372,7 @@ def main():
             opts.mp3_format,
             opts.ignore_cache,
             opts.jobs,
+            opts.preserve,
         )
     except Error as exc:
         print("")

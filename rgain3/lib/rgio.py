@@ -16,6 +16,7 @@
 
 import abc
 import warnings
+import os
 
 import mutagen
 from mutagen.easyid3 import EasyID3
@@ -44,7 +45,7 @@ class BaseTagReaderWriter(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def write_gain(self, filename, track_gain, album_gain):
+    def write_gain(self, filename, track_gain, album_gain, preserve):
         raise NotImplementedError()
 
 
@@ -101,10 +102,13 @@ class SimpleTagReaderWriter(BaseTagReaderWriter):
                     return ref_level
         return None
 
-    def write_gain(self, filename, track_gain, album_gain):
+    def write_gain(self, filename, track_gain, album_gain, preserve):
         tags = self._get_tags_object(filename)
         if tags is None:
             raise AudioFormatError(filename)
+
+        if preserve:
+            stat = os.stat(filename)
 
         if track_gain:
             tags[self.TRACK_GAIN_TAG] = self._dump_gain(track_gain.gain)
@@ -117,6 +121,9 @@ class SimpleTagReaderWriter(BaseTagReaderWriter):
             tags[self.ALBUM_PEAK_TAG] = self._dump_peak(album_gain.peak)
 
         tags.save()
+
+        if preserve:
+            os.utime(filename, (stat.st_atime, stat.st_mtime))
 
     def _dump_gain(self, gain):
         return "%.8f dB" % gain
@@ -281,9 +288,9 @@ class MP3DefaultTagReaderWriter(BaseTagReaderWriter):
             # the formats seem to match, we obviously use the non-clamped one
             return (rgorg_track_gain, rgorg_album_gain)
 
-    def write_gain(self, filename, track_gain, album_gain):
-        self.rgorg.write_gain(filename, track_gain, album_gain)
-        self.rva2.write_gain(filename, track_gain, album_gain)
+    def write_gain(self, filename, track_gain, album_gain, preserve):
+        self.rgorg.write_gain(filename, track_gain, album_gain, preserve)
+        self.rva2.write_gain(filename, track_gain, album_gain, preserve)
 
 
 GAIN_EPSILON = 0.1
@@ -377,5 +384,5 @@ class BaseFormatsMap:
     def read_gain(self, filename):
         return self.accessor(filename).read_gain(filename)
 
-    def write_gain(self, filename, trackgain, albumgain):
-        self.accessor(filename).write_gain(filename, trackgain, albumgain)
+    def write_gain(self, filename, trackgain, albumgain, preserve):
+        self.accessor(filename).write_gain(filename, trackgain, albumgain, preserve)

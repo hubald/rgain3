@@ -105,6 +105,13 @@ def common_parser(**kwargs) -> ArgumentParser:
         help="Don't actually modify any files.",
     )
     parser.add_argument(
+        "-p", "--preserve-time",
+        dest="preserve",
+        action="store_true",
+        default=False,
+        help="Preserve timestamps on files"
+    )
+    parser.add_argument(
         "-r", "--reference-loudness",
         type=int,
         dest="ref_level",
