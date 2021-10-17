@@ -198,7 +198,6 @@ def do_gain_all(music_dir, albums, single_tracks, files, ref_level=89,
     queue = manager.Queue()
     num_jobs = 0
 
-    print(f"Running gain_all {force} {dry_run} {preserve}")
 
     print("Dispatching jobs ...")
     if single_tracks:
@@ -255,7 +254,6 @@ def do_gain_all(music_dir, albums, single_tracks, files, ref_level=89,
 
 def do_collectiongain(music_dir, ref_level=89, force=False, dry_run=False,
                       mp3_format=None, ignore_cache=False, jobs=0, preserve=False):
-    print(f"Running collection gain {force} {dry_run} {ignore_cache} {preserve}")
     music_abspath = os.path.abspath(music_dir)
     musicpath_hash = md5(music_abspath.encode("utf-8")).hexdigest()
     cache_file = os.path.join(os.path.expanduser("~"), ".cache",
