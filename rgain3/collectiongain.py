@@ -97,6 +97,10 @@ def write_cache(cache_file, files):
 def collect_files(music_dir, files, visited_cache, is_supported):
     i = 0
     for dirpath, dirnames, filenames in os.walk(music_dir):
+        # Skip directory and all subdirectories if .noreplaygain file exists
+        if ".noreplaygain" in filenames:
+            dirnames[:] = []  # Remove all subdirectories from traversal
+            continue  # Skip processing files in this directory
         for filename in filenames:
             filepath = relpath(os.path.join(dirpath, filename), music_dir)
             properpath = os.path.join(dirpath, filename)
