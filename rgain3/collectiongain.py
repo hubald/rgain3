@@ -14,6 +14,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
+import collections
 import contextlib
 import io
 import multiprocessing
@@ -94,7 +95,7 @@ def write_cache(cache_file, files):
         print("Error while writing the cache - %s" % exc)
 
 
-def collect_files(music_dir, files, visited_cache, is_supported):
+def collect_files(music_dir, files, visited_cache, is_supported, same_dir_is_album=False):
     i = 0
     for dirpath, dirnames, filenames in os.walk(music_dir):
         # Skip directory and all subdirectories if .noreplaygain file exists
@@ -118,11 +119,14 @@ def collect_files(music_dir, files, visited_cache, is_supported):
                 i += 1
                 print("  [%i] %s |" % (i, filepath), end='')
                 try:
-                    tags = mutagen.File(os.path.join(music_dir, filepath))
-                    if tags is None:
-                        raise Exception()
-                    album_id = albumid.get_album_id(tags)
-                    print(album_id or "<single track>")
+                    if same_dir_is_album:
+                        album_id = os.path.abspath(dirpath)
+                    else:
+                        tags = mutagen.File(os.path.join(music_dir, filepath))
+                        if tags is None:
+                            raise Exception()
+                        album_id = albumid.get_album_id(tags)
+                        print(album_id or "<single track>")
                     # fields here: album_id, mtime, already_processed
                     files[filepath] = (album_id, mtime, False)
                 except Exception:
@@ -132,13 +136,13 @@ def collect_files(music_dir, files, visited_cache, is_supported):
 
 def transform_cache(files):
     # transform ``files`` into lists of things to process
-    albums = {}
+    albums = collections.defaultdict(list)
     single_tracks = []
     for filepath, (album_id, mtime, processed) in files.items():
-        if album_id is not None:
-            albums.setdefault(album_id, []).append(filepath)
-        else:
+        if album_id is None:
             single_tracks.append(filepath)
+        else:
+            albums[album_id].append(filepath)
 
     # purge anything that's marked as processed
     for album_id, album_files in list(albums.items()):
@@ -257,7 +261,7 @@ def do_gain_all(music_dir, albums, single_tracks, files, ref_level=89,
 
 
 def do_collectiongain(music_dir, ref_level=89, force=False, dry_run=False,
-                      mp3_format=None, ignore_cache=False, jobs=0, preserve=False):
+                      mp3_format=None, ignore_cache=False, jobs=0, preserve=False, same_dir_is_album=False):
     music_abspath = os.path.abspath(music_dir)
     musicpath_hash = md5(music_abspath.encode("utf-8")).hexdigest()
     cache_file = os.path.join(os.path.expanduser("~"), ".cache",
@@ -278,7 +282,8 @@ def do_collectiongain(music_dir, ref_level=89, force=False, dry_run=False,
             music_dir,
             files,
             visited_cache,
-            rgio.BaseFormatsMap(mp3_format).is_supported
+            rgio.BaseFormatsMap(mp3_format).is_supported,
+            same_dir_is_album,
         )
         # clean cache
         for filepath, visited in list(visited_cache.items()):
@@ -327,7 +332,7 @@ def collectiongain_parser():
     parser = common_parser(
         description="Calculate Replay Gain for a large set of audio files "
         "without asking many questions. This program calculates an album ID "
-        "for any audo file in MUSIC_DIR. Then, album gain will be applied to "
+        "for any audio file in MUSIC_DIR. Then, album gain will be applied to "
         "all files with the same album ID. The album ID is created from file "
         "tags as follows: If an 'album' tag is present, it is joined with the "
         "contents of an 'albumartist' tag, or, if that isn't set, the contents "
@@ -346,6 +351,12 @@ def collectiongain_parser():
         "--regain",
         action="store_true",
         help="Fully reprocess everything. Same as '--force --ignore-cache'.",
+    )
+    parser.add_argument(
+        "--same-dir-is-album",
+        action="store_true",
+        dest="same_dir_is_album",
+        help="Consider all files in the same directory as part of the same album (e.g. for sampler collections).",
     )
     parser.add_argument(
         "-j", "--jobs",
@@ -378,6 +389,7 @@ def main():
             opts.ignore_cache,
             opts.jobs,
             opts.preserve,
+            opts.same_dir_is_album,
         )
     except Error as exc:
         print("")
