@@ -17,7 +17,7 @@
 from importlib.metadata import version
 
 try:
-    __version__ = version("rgain")
+    __version__ = version("rgain3")
 except Exception:
     # rgain package is not installed
     __version__ = None

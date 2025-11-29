@@ -84,6 +84,16 @@ def common_parser(**kwargs) -> ArgumentParser:
     """
     kwargs["add_help"] = True
     kwargs["allow_abbrev"] = False
+    
+    # If prog is not explicitly set and we are running as a module,
+    # use the module name instead of sys.argv[0]
+    if "prog" not in kwargs:
+        try:
+            main_module = sys.modules.get("__main__")
+            if main_module and hasattr(main_module, "__spec__") and main_module.__spec__:
+                kwargs["prog"] = main_module.__spec__.name
+        except (AttributeError, KeyError):
+            pass
 
     parser = ArgumentParser(**kwargs)
     parser.add_argument(
