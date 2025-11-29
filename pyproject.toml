@@ -79,3 +79,8 @@ include = [ "rgain3",]
 
 [tool.hatch.metadata.hooks.requirements_txt]
 files = [ "requirements.txt",]
+
+[tool.setuptools.bdist_rpm]
+requires = "gobject-introspection python3-gobject-base gstreamer-plugins-base gstreamer-plugins-good gstreamer-plugins-bad gstreamer-plugins-ugly"
+doc_files = ["README.md", "CHANGES.md"]
+release = "%{?build_number}%{!?build_number:1}%{?dist}"

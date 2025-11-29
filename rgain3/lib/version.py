@@ -14,10 +14,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
-from pkg_resources import DistributionNotFound, get_distribution
+from importlib.metadata import version
 
 try:
-    __version__ = get_distribution("rgain").version
-except DistributionNotFound:
+    __version__ = version("rgain")
+except Exception:
     # rgain package is not installed
     __version__ = None
