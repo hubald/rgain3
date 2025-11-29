@@ -7,7 +7,7 @@
 %define mybuildnumber %{?build_number}%{?!build_number:1}
 
 Name:           python-%{_name}
-Version:        1.1.2
+Version:        1.3.5
 Release:        %{mybuildnumber}%{?dist}
 Summary:        ReplayGain manipulator in Python
 
