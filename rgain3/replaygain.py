@@ -61,7 +61,7 @@ def calculate_gain(files, ref_level):
 # TODO: this looks like it can be fairly easily refactored into smaller pieces,
 # when there is decent coverage.
 def do_gain(files, ref_level=89, force=False, dry_run=False, album=True,  # noqa
-            mp3_format=None):
+            mp3_format=None, preserve=False):
 
     formats_map = rgio.BaseFormatsMap(mp3_format)
 
@@ -124,7 +124,7 @@ def do_gain(files, ref_level=89, force=False, dry_run=False, album=True,  # noqa
         for filename, trackdata in tracks_data.items():
             print("  %s:" % filename, end='')
             try:
-                formats_map.write_gain(filename, trackdata, albumdata)
+                formats_map.write_gain(filename, trackdata, albumdata, preserve)
             except Exception as exc:
                 raise Error("%s: %s" % (filename, exc))
             else:
@@ -213,6 +213,7 @@ def main():
                 opts.dry_run,
                 opts.album,
                 opts.mp3_format,
+                opts.preserve,
             )
         except Error as exc:
             print("")
